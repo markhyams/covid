@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Covid Testing graphs</title>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.6/handlebars.min.js"></script>
+    <script src="app.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="scatter_chart" style="width: 1200px; height: 800px;"></div>
+    <table id="states_table">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Positive</th>
+          <th>Negative</th>
+          <th>Total Tests</th>
+          <th>Percent Negative</th>
+          <th>Tests Per 100,000 residents</th>
+          <th>Population</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <script type="text/x-handlebars" id="state_table_row_template" data-type="partial">
+      <tr>
+        <td>{{state}}</td>
+        <td>{{positive}}</td>
+        <td>{{negative}}</td>
+        <td>{{totalTestResults}}</td>
+        <td>{{percentNegative}}</td>
+        <td>{{testsPer1000}}</td>
+        <td>{{population}}</td>
+      </td>
+    </script>
+
+    <script type="text/x-handlebars" id="states_table_template" >
+      {{#each states}}
+        {{> state_table_row_template}}
+      {{/each}}
+    </script>
+  </body>
+</html>
