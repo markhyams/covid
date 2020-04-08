@@ -167,11 +167,13 @@ const Data = {
       state,
       positive,
       negative,
+      death,
       totalTestResults,
     }) => ({
       state,
       positive,
       negative,
+      death,
       totalTestResults,
     }));
   },
@@ -182,26 +184,18 @@ const Chart = (function makeChart() {
   return {
     init(stateObjects) {
       function drawChart() {
-        // const formatData = (data) => {
-        //   const result = [['Percent Negative', 'Tests per-capita']];
-        //   data.forEach((stateObj) => {
-        //     result.push([stateObj.percentNegative, stateObj.testsPer1000]);
-        //   });
-        //   return result;
-        // };
-
         const createDataTable = (data) => {
           const dataTable = new google.visualization.DataTable();
           const rowsToAdd = [];
+
           dataTable.addColumn('number', 'Percent Negative');
           dataTable.addColumn('number', 'Tests per capita');
-          // A column for custom tooltip content
           dataTable.addColumn({ type: 'string', role: 'tooltip' });
 
 
           data.forEach((stateObj) => {
             const toolTip = `State: ${stateObj.state}
-                             Population: ${stateObj.population}
+                             Population: ${stateObj.population.toLocaleString()}
                              Total Cases: ${stateObj.positive.toLocaleString()}
                              Negative Tests: ${stateObj.percentNegative}%`;
             rowsToAdd.push([stateObj.percentNegative, stateObj.testsPer1000, toolTip]);
@@ -211,7 +205,6 @@ const Chart = (function makeChart() {
           return dataTable;
         };
 
-        // const data = google.visualization.arrayToDataTable(formatData(stateObjects));
         const data = createDataTable(stateObjects);
         const options = {
           title: 'Percent Negative vs. Tests per-capita comparison',
@@ -225,45 +218,105 @@ const Chart = (function makeChart() {
         chart.draw(data, options);
       }
 
+      function drawSecondChart() {
+        const createDataTable = (data) => {
+          const dataTable = new google.visualization.DataTable();
+          const rowsToAdd = [];
+
+          dataTable.addColumn('number', 'Deaths per Capita');
+          dataTable.addColumn('number', 'Tests per capita');
+          dataTable.addColumn({ type: 'string', role: 'tooltip' });
+
+
+          data.forEach((stateObj) => {
+            const toolTip = `State: ${stateObj.state}
+                             Population: ${stateObj.population.toLocaleString()}
+                             Total Cases: ${stateObj.positive.toLocaleString()}
+                             Total Deaths: ${stateObj.death}`;
+            rowsToAdd.push([stateObj.deathsPer10M, stateObj.testsPer1000, toolTip]);
+          });
+
+          dataTable.addRows(rowsToAdd);
+          return dataTable;
+        };
+
+        const data = createDataTable(stateObjects);
+        const options = {
+          title: 'Deaths per Capita vs. Tests per-capita comparison',
+          hAxis: { title: 'Deaths per 10 million people' },
+          vAxis: { title: 'Tests per 100k people' },
+          legend: 'none',
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('scatter_chart_2'));
+
+        chart.draw(data, options);
+      }
+
       google.charts.load('current', { 'packages':['corechart'] });
       google.charts.setOnLoadCallback(drawChart);
-
-
+      google.charts.setOnLoadCallback(drawSecondChart);
     },
-  }
+  };
+}());
+
+const UIEvents = (function makeUIEvents() {
+  const sortTable = (event) => {
+    console.log(event.target);
+  };
+
+  return {
+    bindEvents() {
+      document.querySelector('#states_table tr').addEventListener('click', sortTable);
+    },
+  };
 }());
 
 const App = (function makeApp() {
-  const start = (data) => {
-    let states = Data.parse(data);
+  const fillStateObjects = (states) => {
     states = states.filter((state) => Data.statePop[state.state]);
 
     states.map((state) => {
       state.population = Data.statePop[state.state];
       state.percentNegative = Math.round(1000 * state.negative / state.totalTestResults) / 10;
       state.testsPer1000 = Math.round(100000 * state.totalTestResults / state.population);
-      state.population = state.population.toLocaleString();
+      state.deathsPer10M = Math.round(10000000 * state.death / state.population);
       return state;
     });
 
-    states.sort((a, b) => {
-      return b.testsPer1000 - a.testsPer1000;
-    });
+    // states.sort((a, b) => {
+    //   return b.testsPer1000 - a.testsPer1000;
+    // });
 
-    const html = Templates.states_table_template({ states: states });
+    return states;
+  };
+
+  const getDate = (dataObj) => {
+    const date = new Date(dataObj.dateModified);
+    return date.toLocaleString();
+  };
+
+  const start = (data) => {
+    const states = Data.parse(data);
+
+    Data.states = fillStateObjects(states);
+    Data.date = getDate(data[0]);
+    document.getElementById('data_date').innerText = Data.date;
+    const html = Templates.states_table_template({ states: Data.states });
     const tbody = document.querySelector('#states_table tbody');
     tbody.innerHTML = html;
-    // console.log(states);
 
-    Chart.init(states);
+    Chart.init(Data.states);
   };
 
   return {
     init() {
       Templates.init();
+      UIEvents.bindEvents();
       Api.getAll(start);
     },
   };
 }());
+
 
 document.addEventListener('DOMContentLoaded', App.init.bind(App));

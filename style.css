@@ -12,6 +12,12 @@ td, th {
   text-align: left;
 }
 
-tr:hover {
+tbody tr:hover {
   background-color: #eee;
+}
+
+th:hover {
+  cursor: pointer;
+  text-decoration: underline;
+  color: darkgreen;
 }
